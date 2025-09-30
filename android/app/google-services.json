@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "531284392680",
+    "project_id": "aquaroot-9e785",
+    "storage_bucket": "aquaroot-9e785.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:531284392680:android:e399147ec2860e5aa9a75d",
+        "android_client_info": {
+          "package_name": "com.example.aquaroot"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "531284392680-p3fsu93dt8jc1c4scffqmhvpdt6b0asf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD6MTzjhXLaz5pPOv26nZLyUjtonQy9k1Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "531284392680-p3fsu93dt8jc1c4scffqmhvpdt6b0asf.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "531284392680-nb3mk01d570f2jvqtjhbskr8ctj4a9j5.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.aquaroot"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
