@@ -235,13 +235,17 @@ class ModelManager:
     def predict_irrigation_need(self, features: List[List[float]]) -> Dict[str, Any]:
         """Predict irrigation need"""
         if 'irrigation' not in self.models or 'irrigation' not in self.scalers:
-            logger.warning("Irrigation model not loaded, returning default prediction")
-            return {
-                'predicted_value': 0,
-                'confidence': 0.5,
-                'model_name': 'default',
-                'features_used': ['temperature', 'humidity', 'soil_moisture', 'soil_temperature']
-            }
+            # Models might have been trained after this instance was created
+            logger.warning("Irrigation model not loaded, attempting reload before using defaults")
+            self._load_models()
+            if 'irrigation' not in self.models or 'irrigation' not in self.scalers:
+                logger.warning("Irrigation model still not available, returning default prediction")
+                return {
+                    'predicted_value': 0,
+                    'confidence': 0.5,
+                    'model_name': 'default',
+                    'features_used': ['temperature', 'humidity', 'soil_moisture', 'soil_temperature']
+                }
         
         try:
             # Scale features
@@ -279,13 +283,16 @@ class ModelManager:
     def predict_crop_health(self, features: List[List[float]]) -> Dict[str, Any]:
         """Predict crop health score"""
         if 'crop_health' not in self.models or 'crop_health' not in self.scalers:
-            logger.warning("Crop health model not loaded, returning default prediction")
-            return {
-                'predicted_value': 50.0,
-                'confidence': 0.5,
-                'model_name': 'default',
-                'features_used': ['temperature', 'humidity', 'soil_moisture', 'soil_temperature']
-            }
+            logger.warning("Crop health model not loaded, attempting reload before using defaults")
+            self._load_models()
+            if 'crop_health' not in self.models or 'crop_health' not in self.scalers:
+                logger.warning("Crop health model still not available, returning default prediction")
+                return {
+                    'predicted_value': 50.0,
+                    'confidence': 0.5,
+                    'model_name': 'default',
+                    'features_used': ['temperature', 'humidity', 'soil_moisture', 'soil_temperature']
+                }
         
         try:
             # Scale features
@@ -316,13 +323,16 @@ class ModelManager:
     def predict_yield(self, features: List[List[float]]) -> Dict[str, Any]:
         """Predict crop yield"""
         if 'yield' not in self.models or 'yield' not in self.scalers:
-            logger.warning("Yield model not loaded, returning default prediction")
-            return {
-                'predicted_value': 2000.0,
-                'confidence': 0.5,
-                'model_name': 'default',
-                'features_used': ['temperature', 'humidity', 'soil_moisture', 'soil_temperature']
-            }
+            logger.warning("Yield model not loaded, attempting reload before using defaults")
+            self._load_models()
+            if 'yield' not in self.models or 'yield' not in self.scalers:
+                logger.warning("Yield model still not available, returning default prediction")
+                return {
+                    'predicted_value': 2000.0,
+                    'confidence': 0.5,
+                    'model_name': 'default',
+                    'features_used': ['temperature', 'humidity', 'soil_moisture', 'soil_temperature']
+                }
         
         try:
             # Scale features

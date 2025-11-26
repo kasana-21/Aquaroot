@@ -7,6 +7,7 @@ import json
 try:
     import firebase_admin
     from firebase_admin import credentials, firestore
+    from google.api_core.exceptions import AlreadyExists
     FIREBASE_AVAILABLE = True
 except ImportError:
     FIREBASE_AVAILABLE = False
@@ -182,11 +183,18 @@ class FirestoreService:
                 doc_ref.set(prediction_data)
                 return document_id
             else:
+                # Auto-generated document ID; handle rare AlreadyExists
                 doc_ref = collection.add(prediction_data)
                 return doc_ref[1].id
                 
         except Exception as e:
+            # Treat AlreadyExists as non-fatal to avoid crashing background tasks
+            if FIREBASE_AVAILABLE and isinstance(e, AlreadyExists):
+                logger.warning(f"Prediction document already exists in Firestore, skipping create: {e}")
+                # Best-effort: return provided document_id or an empty string
+                return document_id or ""
             logger.error(f"Error saving prediction to Firestore: {e}")
+            # For other errors, re-raise so they can be handled upstream if needed
             raise
     
     def get_predictions(self, sensor_id: Optional[str] = None, limit: int = 10) -> List[Dict[str, Any]]:
