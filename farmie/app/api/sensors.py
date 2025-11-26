@@ -52,6 +52,8 @@ async def receive_sensor_data(
         
         # Get weather data for context
         weather_data = weather_service.get_weather_data()
+        # Get short-term forecast (used by LLM for decisions)
+        forecast_data = weather_service.get_weather_forecast(days=3)
         
         # Make ML predictions
         predictions = {}
@@ -70,22 +72,22 @@ async def receive_sensor_data(
         
         # Generate LLM insights
         insights = {}
-        
-        # Irrigation insight
+
+        # Irrigation insight (uses current weather + forecast)
         irrigation_insight = llm_service.generate_irrigation_insight(
-            sensor_dict, irrigation_pred, weather_data
+            sensor_dict, irrigation_pred, weather_data, forecast_data
         )
         insights['irrigation'] = irrigation_insight
         
         # Crop health insight
         crop_health_insight = llm_service.generate_crop_health_insight(
-            sensor_dict, crop_health_pred, weather_data
+            sensor_dict, crop_health_pred, weather_data, forecast_data
         )
         insights['crop_health'] = crop_health_insight
         
         # Yield insight
         yield_insight = llm_service.generate_yield_insight(
-            sensor_dict, yield_pred, weather_data
+            sensor_dict, yield_pred, weather_data, forecast_data
         )
         insights['yield'] = yield_insight
         
@@ -95,6 +97,7 @@ async def receive_sensor_data(
             'predictions': predictions,
             'insights': insights,
             'weather_context': weather_data,
+            'forecast_context': forecast_data,
             'alerts': alerts,
             'timestamp': datetime.utcnow().isoformat()
         }
@@ -147,6 +150,8 @@ async def receive_batch_sensor_data(
         
         # Get weather data once for all sensors
         weather_data = weather_service.get_weather_data()
+        # Get short-term forecast once for all sensors
+        forecast_data = weather_service.get_weather_forecast(days=3)
         
         for sensor_data in batch_data.sensors:
             # Validate each sensor data
@@ -170,16 +175,25 @@ async def receive_batch_sensor_data(
                 'yield': model_manager.predict_yield(features)
             }
             
-            # Generate insights
+            # Generate insights (using current weather + forecast)
             sensor_insights = {
                 'irrigation': llm_service.generate_irrigation_insight(
-                    sensor_dict, sensor_predictions['irrigation'], weather_data
+                    sensor_dict,
+                    sensor_predictions['irrigation'],
+                    weather_data,
+                    forecast_data,
                 ),
                 'crop_health': llm_service.generate_crop_health_insight(
-                    sensor_dict, sensor_predictions['crop_health'], weather_data
+                    sensor_dict,
+                    sensor_predictions['crop_health'],
+                    weather_data,
+                    forecast_data,
                 ),
                 'yield': llm_service.generate_yield_insight(
-                    sensor_dict, sensor_predictions['yield'], weather_data
+                    sensor_dict,
+                    sensor_predictions['yield'],
+                    weather_data,
+                    forecast_data,
                 )
             }
             

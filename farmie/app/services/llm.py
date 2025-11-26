@@ -63,13 +63,19 @@ class LLMService:
         else:
             logger.warning("Google Gemini library not available")
     
-    def generate_irrigation_insight(self, sensor_data: Dict[str, Any], 
-                                  prediction: Dict[str, Any], 
-                                  weather_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def generate_irrigation_insight(
+        self,
+        sensor_data: Dict[str, Any],
+        prediction: Dict[str, Any],
+        weather_data: Optional[Dict[str, Any]] = None,
+        forecast_data: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
         """Generate irrigation insights using LLM"""
         try:
             # Prepare context
-            context = self._prepare_irrigation_context(sensor_data, prediction, weather_data)
+            context = self._prepare_irrigation_context(
+                sensor_data, prediction, weather_data, forecast_data
+            )
             
             # Try OpenAI first, fallback to Gemini
             if self.openai_client:
@@ -83,12 +89,18 @@ class LLMService:
             logger.error(f"Error generating irrigation insight: {e}")
             return self._generate_fallback_insight(sensor_data, "irrigation")
     
-    def generate_crop_health_insight(self, sensor_data: Dict[str, Any], 
-                                   prediction: Dict[str, Any], 
-                                   weather_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def generate_crop_health_insight(
+        self,
+        sensor_data: Dict[str, Any],
+        prediction: Dict[str, Any],
+        weather_data: Optional[Dict[str, Any]] = None,
+        forecast_data: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
         """Generate crop health insights using LLM"""
         try:
-            context = self._prepare_crop_health_context(sensor_data, prediction, weather_data)
+            context = self._prepare_crop_health_context(
+                sensor_data, prediction, weather_data, forecast_data
+            )
             
             if self.openai_client:
                 return self._generate_with_openai(context, "crop_health")
@@ -101,12 +113,18 @@ class LLMService:
             logger.error(f"Error generating crop health insight: {e}")
             return self._generate_fallback_insight(sensor_data, "crop_health")
     
-    def generate_yield_insight(self, sensor_data: Dict[str, Any], 
-                             prediction: Dict[str, Any], 
-                             weather_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def generate_yield_insight(
+        self,
+        sensor_data: Dict[str, Any],
+        prediction: Dict[str, Any],
+        weather_data: Optional[Dict[str, Any]] = None,
+        forecast_data: Optional[List[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
         """Generate yield prediction insights using LLM"""
         try:
-            context = self._prepare_yield_context(sensor_data, prediction, weather_data)
+            context = self._prepare_yield_context(
+                sensor_data, prediction, weather_data, forecast_data
+            )
             
             if self.openai_client:
                 return self._generate_with_openai(context, "yield")
@@ -119,8 +137,14 @@ class LLMService:
             logger.error(f"Error generating yield insight: {e}")
             return self._generate_fallback_insight(sensor_data, "yield")
     
-    def _prepare_irrigation_context(self, sensor_data: Dict, prediction: Dict, weather_data: Optional[Dict]) -> str:
-        """Prepare context for irrigation insights"""
+    def _prepare_irrigation_context(
+        self,
+        sensor_data: Dict,
+        prediction: Dict,
+        weather_data: Optional[Dict],
+        forecast_data: Optional[List[Dict[str, Any]]],
+    ) -> str:
+        """Prepare context for irrigation insights, including forecast if available"""
         context = f"""
         Farm Sensor Data:
         - Temperature: {sensor_data.get('temperature', 'N/A')}°C
@@ -135,16 +159,39 @@ class LLMService:
         
         if weather_data:
             context += f"""
-            Weather Data:
-            - Precipitation: {weather_data.get('precipitation', 'N/A')}mm
+            Current Weather Data:
+            - Temperature: {weather_data.get('temperature', 'N/A')}°C
+            - Humidity: {weather_data.get('humidity', 'N/A')}%
+            - Precipitation (last hour): {weather_data.get('precipitation', 'N/A')}mm
             - Wind Speed: {weather_data.get('wind_speed', 'N/A')}m/s
             - Pressure: {weather_data.get('pressure', 'N/A')}hPa
             """
+
+        if forecast_data:
+            # Summarize next 24h from forecast
+            next_window = forecast_data[:8]
+            if next_window:
+                temps = [d.get('temperature') for d in next_window if d.get('temperature') is not None]
+                precip = [d.get('precipitation', 0) for d in next_window]
+                avg_temp = sum(temps) / len(temps) if temps else 'N/A'
+                total_precip = sum(precip) if precip else 'N/A'
+                context += f"""
+                Short-term Forecast (next 24h):
+                - Average Temperature: {avg_temp}°C
+                - Total Precipitation: {total_precip}mm
+                - Example Conditions: {next_window[0].get('description', 'N/A')}
+                """
         
         return context
     
-    def _prepare_crop_health_context(self, sensor_data: Dict, prediction: Dict, weather_data: Optional[Dict]) -> str:
-        """Prepare context for crop health insights"""
+    def _prepare_crop_health_context(
+        self,
+        sensor_data: Dict,
+        prediction: Dict,
+        weather_data: Optional[Dict],
+        forecast_data: Optional[List[Dict[str, Any]]],
+    ) -> str:
+        """Prepare context for crop health insights, including forecast if available"""
         context = f"""
         Farm Sensor Data:
         - Temperature: {sensor_data.get('temperature', 'N/A')}°C
@@ -159,16 +206,36 @@ class LLMService:
         
         if weather_data:
             context += f"""
-            Weather Data:
+            Current Weather Data:
             - Temperature: {weather_data.get('temperature', 'N/A')}°C
             - Humidity: {weather_data.get('humidity', 'N/A')}%
             - UV Index: {weather_data.get('uv_index', 'N/A')}
             """
+
+        if forecast_data:
+            next_window = forecast_data[:8]
+            if next_window:
+                temps = [d.get('temperature') for d in next_window if d.get('temperature') is not None]
+                humid = [d.get('humidity') for d in next_window if d.get('humidity') is not None]
+                avg_temp = sum(temps) / len(temps) if temps else 'N/A'
+                avg_hum = sum(humid) / len(humid) if humid else 'N/A'
+                context += f"""
+                Short-term Forecast (next 24h):
+                - Average Temperature: {avg_temp}°C
+                - Average Humidity: {avg_hum}%
+                - Example Conditions: {next_window[0].get('description', 'N/A')}
+                """
         
         return context
     
-    def _prepare_yield_context(self, sensor_data: Dict, prediction: Dict, weather_data: Optional[Dict]) -> str:
-        """Prepare context for yield insights"""
+    def _prepare_yield_context(
+        self,
+        sensor_data: Dict,
+        prediction: Dict,
+        weather_data: Optional[Dict],
+        forecast_data: Optional[List[Dict[str, Any]]],
+    ) -> str:
+        """Prepare context for yield insights, including forecast if available"""
         context = f"""
         Farm Sensor Data:
         - Temperature: {sensor_data.get('temperature', 'N/A')}°C
@@ -183,11 +250,26 @@ class LLMService:
         
         if weather_data:
             context += f"""
-            Weather Data:
-            - Precipitation: {weather_data.get('precipitation', 'N/A')}mm
+            Current Weather Data:
             - Temperature: {weather_data.get('temperature', 'N/A')}°C
+            - Humidity: {weather_data.get('humidity', 'N/A')}%
+            - Precipitation: {weather_data.get('precipitation', 'N/A')}mm
             - Wind Speed: {weather_data.get('wind_speed', 'N/A')}m/s
             """
+
+        if forecast_data:
+            window = forecast_data[:8]
+            if window:
+                temps = [d.get('temperature') for d in window if d.get('temperature') is not None]
+                precip = [d.get('precipitation', 0) for d in window]
+                avg_temp = sum(temps) / len(temps) if temps else 'N/A'
+                total_precip = sum(precip) if precip else 'N/A'
+                context += f"""
+                Short-term Forecast (next 24h):
+                - Average Temperature: {avg_temp}°C
+                - Total Precipitation: {total_precip}mm
+                - Example Conditions: {window[0].get('description', 'N/A')}
+                """
         
         return context
     
@@ -273,6 +355,39 @@ class LLMService:
                 raise ValueError("No JSON found in response")
             
             parsed = json.loads(json_str)
+
+            # Normalize into a friendly structure expected by LLMInsight
+            # Ensure we always have a human-readable content string
+            raw_content = parsed.get("content")
+            if isinstance(raw_content, dict):
+              # Flatten dict-like content into a readable sentence
+              flat_parts = []
+              for k, v in raw_content.items():
+                  flat_parts.append(f"{k.replace('_', ' ')}: {v}")
+              parsed["content"] = "; ".join(flat_parts)
+            elif not isinstance(raw_content, str) or not raw_content.strip():
+              # Build a generic summary from other keys if content is missing
+              summary_parts = []
+              if "current_crop_health" in parsed:
+                  summary_parts.append(
+                      f"Current crop health score is {parsed['current_crop_health']}."
+                  )
+              if "yield_prediction_analysis" in parsed:
+                  summary_parts.append(str(parsed["yield_prediction_analysis"]))
+              if not summary_parts:
+                  summary_parts.append(str(parsed))
+              parsed["content"] = " ".join(summary_parts)
+
+            # Normalize recommendations and warnings to lists of strings
+            for key in ["recommendations", "warnings"]:
+                value = parsed.get(key, [])
+                if isinstance(value, str):
+                    parsed[key] = [value]
+                elif isinstance(value, list):
+                    parsed[key] = [str(v) for v in value]
+                else:
+                    parsed[key] = [str(value)] if value else []
+
             parsed['timestamp'] = datetime.utcnow().isoformat()
             return parsed
             

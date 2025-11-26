@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.openapi.docs import get_swagger_ui_html
@@ -273,6 +273,23 @@ async def get_config():
     except Exception as e:
         logger.error(f"Error getting configuration: {e}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@app.post("/predict", response_model=APIResponse)
+async def predict(input_data: dict = Body(...)):
+    """
+    Run model prediction on input data
+    """
+    try:
+        # Load your model and run prediction here
+        # Example: from app.models.train import FarmMLTrainer
+        # trainer = FarmMLTrainer("app/models/saved")
+        # result = trainer.predict(input_data)
+        result = {"prediction": "example"}  # Replace with actual prediction logic
+        return APIResponse(success=True, message="Prediction successful", data=result)
+    except Exception as e:
+        logger.error(f"Prediction error: {e}")
+        return APIResponse(success=False, message="Prediction failed", data={"error": str(e)})
 
 
 # Custom OpenAPI schema

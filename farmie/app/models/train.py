@@ -386,6 +386,29 @@ class FarmMLTrainer:
             'crop_health': crop_health_results,
             'yield': yield_results
         }
+    
+    def predict(self, model_type: str, input_features: dict):
+        """
+        Load the specified model and run prediction on input_features.
+        model_type: 'irrigation', 'crop_health', or 'yield'
+        input_features: dict of feature_name: value
+        """
+        import joblib
+        import numpy as np
+
+        model_path = os.path.join(self.models_dir, f"{model_type}_model.pkl")
+        metadata_path = os.path.join(self.models_dir, "model_metadata.pkl")
+        if not os.path.exists(model_path) or not os.path.exists(metadata_path):
+            raise FileNotFoundError("Model or metadata not found.")
+
+        model = joblib.load(model_path)
+        with open(metadata_path, "rb") as f:
+            feature_columns = joblib.load(f)["feature_columns"]
+
+        # Prepare input in correct order
+        X = np.array([[input_features.get(col, 0) for col in feature_columns]])
+        prediction = model.predict(X)
+        return prediction[0]
 
 
 def main():

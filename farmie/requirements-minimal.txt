@@ -1,7 +1,7 @@
 # Alternative requirements with pre-compiled wheels
 # Use this if the main requirements.txt fails to install
 
-fastapi==0.104.1
+fastapi
 uvicorn[standard]==0.24.0
 pydantic==2.4.2
 python-dotenv==1.0.0

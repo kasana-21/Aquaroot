@@ -119,13 +119,28 @@ class DataProcessor:
         """Prepare features for ML model prediction"""
         features = []
         
-        # Extract sensor values
+        # Extract base sensor values with sensible defaults
         sensor_values = {
             'temperature': sensor_data.get('temperature', 20.0),
             'humidity': sensor_data.get('humidity', 50.0),
             'soil_moisture': sensor_data.get('soil_moisture', 50.0),
             'soil_temperature': sensor_data.get('soil_temperature', 18.0)
         }
+
+        # If the payload only has a generic "value" with a sensor_type,
+        # map that value onto the appropriate field so models see
+        # real variation instead of constant defaults.
+        sensor_type = sensor_data.get('sensor_type')
+        value = sensor_data.get('value')
+        if isinstance(value, (int, float)) and sensor_type:
+            if sensor_type == 'dht_temperature':
+                sensor_values['temperature'] = float(value)
+            elif sensor_type == 'dht_humidity':
+                sensor_values['humidity'] = float(value)
+            elif sensor_type == 'soil_moisture':
+                sensor_values['soil_moisture'] = float(value)
+            elif sensor_type == 'soil_temperature':
+                sensor_values['soil_temperature'] = float(value)
         
         # Add weather data if available
         if weather_data:
