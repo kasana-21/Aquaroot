@@ -216,30 +216,72 @@ async def health_check():
 
 @app.get("/metrics", response_model=APIResponse)
 async def get_metrics():
-    """
-    Get service metrics and statistics
-    """
+    """Get service and model performance metrics"""
     try:
-        # This would typically collect metrics from a monitoring system
-        # For now, we'll return mock metrics
-        metrics = {
+        metrics = {}
+
+        # Base service metrics (still mostly mock for now)
+        metrics.update({
             "requests_total": 1250,
             "requests_per_minute": 15.5,
             "average_response_time_ms": 245,
             "error_rate_percent": 2.1,
             "active_sensors": 12,
-            "models_loaded": 3,
-            "last_model_update": "2024-01-15T10:30:00Z",
             "uptime_hours": 72.5,
-            "timestamp": datetime.utcnow().isoformat()
-        }
-        
+        })
+
+        # Attempt to load real model performance metadata
+        try:
+            import os
+            import joblib
+
+            models_dir = "app/models/saved"
+            metadata_path = os.path.join(models_dir, "model_metadata.pkl")
+
+            if os.path.exists(metadata_path):
+                metadata = joblib.load(metadata_path)
+
+                metrics["models_loaded"] = 3
+                metrics["last_model_update"] = metadata.get("training_timestamp")
+                metrics["model_type"] = metadata.get("model_type")
+
+                # Expose key performance metrics for each model
+                irrigation_meta = metadata.get("irrigation_model", {})
+                crop_meta = metadata.get("crop_health_model", {})
+                yield_meta = metadata.get("yield_model", {})
+
+                metrics["models"] = {
+                    "irrigation": {
+                        "accuracy": irrigation_meta.get("accuracy"),
+                        "cv_mean": irrigation_meta.get("cv_mean"),
+                        "cv_std": irrigation_meta.get("cv_std"),
+                    },
+                    "crop_health": {
+                        "mse": crop_meta.get("mse"),
+                        "r2": crop_meta.get("r2"),
+                        "cv_mean": crop_meta.get("cv_mean"),
+                        "cv_std": crop_meta.get("cv_std"),
+                    },
+                    "yield": {
+                        "mse": yield_meta.get("mse"),
+                        "r2": yield_meta.get("r2"),
+                        "cv_mean": yield_meta.get("cv_mean"),
+                        "cv_std": yield_meta.get("cv_std"),
+                    },
+                }
+            else:
+                logger.warning("Model metadata file not found; returning base metrics only")
+        except Exception as meta_err:
+            logger.error(f"Error loading model metadata for metrics: {meta_err}")
+
+        metrics["timestamp"] = datetime.utcnow().isoformat()
+
         return APIResponse(
             success=True,
             message="Metrics retrieved successfully",
-            data=metrics
+            data=metrics,
         )
-        
+
     except Exception as e:
         logger.error(f"Error getting metrics: {e}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

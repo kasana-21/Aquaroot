@@ -72,25 +72,25 @@ class FarmMLTrainer:
             # Irrigation need (binary: 0 = no irrigation, 1 = irrigation needed)
             # Balanced logic to get ~40-50% positive cases for better training
             irrigation_need = 1 if (
-                soil_moisture < 40 or  # Low moisture
-                (temperature > 26 and humidity < 55) or  # Hot and somewhat dry
-                (soil_moisture < 50 and temperature > 24) or  # Moderate conditions
-                (soil_moisture < 60 and day_of_year > 150 and day_of_year < 270)  # Summer dry period
+                soil_moisture < 55 or  # Low moisture
+                (soil_moisture < 65 and temperature > 26) or  # Moderate moisture but hot
+                (soil_moisture < 70 and day_of_year > 150 and day_of_year < 270) or  # Summer dry period
+                (temperature > 28 and humidity < 50 and soil_moisture < 75)  # Very hot and somewhat dry
             ) else 0
             
             # Crop health score (0-100)
             crop_health = min(100, max(0, 
-                50 + (soil_moisture - 50) * 0.5 + 
-                (temperature - 20) * 0.3 + 
-                (humidity - 50) * 0.2 + 
+                50 + (soil_moisture - 50) * 0.9 + 
+                (temperature - 20) * 0.2 + 
+                (humidity - 50) * 0.1 + 
                 random.uniform(-5, 5)
             ))
             
             # Yield prediction (kg per hectare)
             yield_prediction = max(0, 
-                2000 + (crop_health - 50) * 20 + 
-                (soil_moisture - 50) * 10 + 
-                (temperature - 20) * 5 + 
+                2000 + (crop_health - 50) * 10 + 
+                (soil_moisture - 50) * 25 + 
+                (temperature - 20) * 3 + 
                 random.uniform(-100, 100)
             )
             
