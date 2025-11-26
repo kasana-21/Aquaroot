@@ -1,0 +1,53 @@
+services:
+  - type: web
+    name: aquaroot-farmie-backend
+    env: python
+    plan: free
+
+    buildCommand: |
+      pip install -r farmie/requirements.txt
+      cd farmie
+      python app/models/train.py
+
+    startCommand: |
+      cd farmie
+      python app/main.py
+
+    autoDeploy: true
+
+    envVars:
+      # Keep sensitive values in Render dashboard; these keys are just references.
+      - key: APP_NAME
+        sync: false
+      - key: DEBUG
+        sync: false
+      - key: HOST
+        sync: false
+      - key: PORT
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: OPENWEATHER_API_KEY
+        sync: false
+      - key: MODEL_RETRAIN_THRESHOLD
+        sync: false
+      - key: PREDICTION_CONFIDENCE_THRESHOLD
+        sync: false
+      - key: WEATHER_API_URL
+        sync: false
+      - key: DEFAULT_LATITUDE
+        sync: false
+      - key: DEFAULT_LONGITUDE
+        sync: false
+      - key: LOG_LEVEL
+        sync: false
+      - key: ENABLE_METRICS
+        sync: false
+      - key: METRICS_PORT
+        sync: false
+      - key: FIREBASE_CREDENTIALS_JSON
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
