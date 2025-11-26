@@ -364,13 +364,19 @@ class DataStorage:
     """Utility class for data storage and retrieval using Firestore"""
     
     def __init__(self, use_firestore: bool = True):
-        """
+        """ 
         Initialize data storage
         Args:
             use_firestore: If True, use Firestore. If False, use file storage (legacy mode)
         """
         self.use_firestore = use_firestore
         self.firestore_service = None
+
+        # Always ensure a local data directory exists so that we can
+        # safely fall back to file storage even if Firestore writes fail
+        # after being initialized.
+        self.data_dir = "data"
+        os.makedirs(self.data_dir, exist_ok=True)
         
         if use_firestore:
             try:
@@ -380,11 +386,6 @@ class DataStorage:
             except Exception as e:
                 logger.warning(f"Failed to initialize Firestore, falling back to file storage: {e}")
                 self.use_firestore = False
-        
-        # Fallback to file storage if Firestore not available
-        if not self.use_firestore:
-            self.data_dir = "data"
-            os.makedirs(self.data_dir, exist_ok=True)
             logger.info("DataStorage initialized with file storage (legacy mode)")
     
     def save_sensor_data(self, sensor_data: Dict[str, Any], filename: Optional[str] = None):
